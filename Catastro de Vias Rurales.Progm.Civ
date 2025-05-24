@@ -1,0 +1,198 @@
+import pandas as pd
+import os
+
+def guardar_catastro_csv(df, nombre_archivo='catastro_vias.csv'):
+    """Guarda el DataFrame en un archivo CSV."""
+    try:
+        df.to_csv(nombre_archivo, index=False)
+        print(f"Catastro guardado en '{nombre_archivo}'.")
+    except Exception as e:
+        print(f"Error al guardar el catastro: {e}")
+
+def cargar_catastro_csv(nombre_archivo='catastro_vias.csv'):
+    """Carga el DataFrame desde un archivo CSV o crea uno nuevo si no existe."""
+    if os.path.exists(nombre_archivo):
+        try:
+            df = pd.read_csv(nombre_archivo)
+            print(f"Catastro cargado desde '{nombre_archivo}'.")
+            return df
+        except Exception as e:
+            print(f"Error al cargar el catastro: {e}")
+
+            return pd.DataFrame(columns=['ID_Via', 'Nombre_Via', 'Longitud_km', 'Tipo_Superficie', 'Estado_Actual'])
+    else:
+        print(f"El archivo '{nombre_archivo}' no encontrado. Creando un DataFrame vacío.")
+        return pd.DataFrame(columns=['ID Via', 'Nombre Via', 'Longitud Km', 'Tipo Superficie', 'Estado Actual'])
+
+def crear_dataframe_catastro_inicial():
+    """Crea y retorna un DataFrame inicial con datos de ejemplo."""
+    data = {
+        'ID_Via': [1, 2, 3, 4, 5],
+        'Nombre_Via': ['Carrera 1', 'Carrera 2', 'Carrera 3', 'Carrera 4', 'Carrera 5'],
+        'Longitud_km': [60.40, 32.10, 57.80, 124.50, 66.80],
+        'Tipo_Superficie': ['Tierra', 'Grava', 'Asfalto', 'Tierra', 'Asfalto'],
+        'Estado_Actual': ['Bueno', 'Regular', 'Bueno', 'Malo', 'Riesgo']
+    }
+    df = pd.DataFrame(data)
+    return df
+
+def agregar_via(df, id_via, nombre, longitud, superficie, estado):
+    """
+    Agrega una nueva vía al DataFrame con validación de ID y tipos permitidos.
+
+    Args:
+        df (pd.DataFrame): DataFrame del catastro.
+        id_via (int): ID único de la vía (debe ser un número entero y no existir).
+        nombre (str): Nombre de la vía.
+        longitud (float): Longitud de la vía en km (debe ser un número positivo).
+        superficie (str): Tipo de superficie de la vía (debe ser uno de los permitidos).
+        estado (str): Estado actual de la vía (debe ser uno de los permitidos).
+
+    Returns:
+        pd.DataFrame: DataFrame del catastro con la nueva vía agregada, o el original si hay errores.
+    """
+
+    if not isinstance(id_via, int) or id_via <= 0:
+        print("Error: El ID_Via debe ser un número entero positivo.")
+        return df
+    if id_via in df['ID_Via'].values:
+        print(f"Error: El ID de Vía '{id_via}' ya existe.")
+        return df
+    if not isinstance(longitud, (int, float)) or longitud < 0:
+        print("Error: La Longitud_km debe ser un número positivo.")
+        return df
+
+    tipos_superficie_permitidos = ['Tierra', 'Grava', 'Asfalto']
+    if superficie not in tipos_superficie_permitidos:
+        print(f"Error: Tipo de Superficie '{superficie}' no permitido. Usar uno de: {tipos_superficie_permitidos}")
+        return df
+
+    estados_permitidos = ['Bueno', 'Regular', 'Malo', 'Riesgo']
+    if estado not in estados_permitidos:
+        print(f"Error: Estado Actual '{estado}' no permitido. Usar uno de: {estados_permitidos}")
+        return df
+
+    nueva_fila = {'ID_Via': id_via, 'Nombre_Via': nombre, 'Longitud_km': longitud, 'Tipo_Superficie': superficie, 'Estado_Actual': estado}
+
+    df = pd.concat([df, pd.DataFrame([nueva_fila])], ignore_index=True)
+    print(f"Vía '{nombre}' agregada.")
+    return df
+
+def leer_vias(df, tipo_superficie=None, estado_actual=None):
+    """Lee y muestra vías del DataFrame, con opción de filtrar."""
+    df_filtrado = df.copy()
+
+    if tipo_superficie:
+        df_filtrado = df_filtrado[df_filtrado['Tipo_Superficie'] == tipo_superficie]
+    if estado_actual:
+        df_filtrado = df_filtrado[df_filtrado['Estado_Actual'] == estado_actual]
+
+    print("\n--- Vías encontradas ---")
+    if df_filtrado.empty:
+        print("No se encontraron vías con los criterios de filtro especificados.")
+    else:
+        print(df_filtrado)
+
+def actualizar_via(df, id_via, columna, nuevo_valor):
+    """Actualiza el valor de una columna para una vía específica por su ID con manejo de errores."""
+    if id_via not in df['ID_Via'].values:
+        print(f"Error: No se encontró una vía con ID '{id_via}'.")
+        return df
+    if columna not in df.columns:
+        print(f"Error: La columna '{columna}' no existe en el DataFrame.")
+        return df
+
+    try:
+        # Validaciones específicas según la columna
+        if columna == 'Longitud_km':
+            if not isinstance(nuevo_valor, (int, float)) or nuevo_valor < 0:
+                print("Error: La Longitud_km debe ser un número positivo.")
+                return df
+        elif columna == 'Tipo_Superficie':
+            tipos_superficie_permitidos = ['Tierra', 'Grava', 'Asfalto']
+            if nuevo_valor not in tipos_superficie_permitidos:
+                print(f"Error: Tipo de Superficie '{nuevo_valor}' no permitido. Usar uno de: {tipos_superficie_permitidos}")
+                return df
+        elif columna == 'Estado_Actual':
+            estados_permitidos = ['Bueno', 'Regular', 'Malo']
+            if nuevo_valor not in estados_permitidos:
+                print(f"Error: Estado Actual '{nuevo_valor}' no permitido. Usar uno de: {estados_permitidos}")
+                return df
+
+        df.loc[df['ID_Via'] == id_via, columna] = nuevo_valor
+        print(f"Valor de '{columna}' actualizado para la Vía con ID '{id_via}'.")
+    except Exception as e:
+        print(f"Ocurrió un error al actualizar la vía: {e}")
+    return df
+
+def eliminar_via(df, id_via):
+    """Elimina una vía del DataFrame por su ID."""
+    if id_via not in df['ID_Via'].values:
+        print(f"Error: No se encontró una vía con ID '{id_via}'.")
+        return df
+    try:
+        df = df[df['ID_Via'] != id_via].reset_index(drop=True)
+        print(f"Vía con ID '{id_via}' eliminada.")
+    except Exception as e:
+        print(f"Ocurrió un error al eliminar la vía: {e}")
+    return df
+
+def calcular_indicadores(df):
+    """Calcula y muestra indicadores de longitud del catastro."""
+    if df.empty:
+        print("\n--- Indicadores de Longitud ---")
+        print("El catastro está vacío, no se pueden calcular indicadores.")
+        return
+
+    longitud_total = df['Longitud_km'].sum()
+    longitud_por_superficie = df.groupby('Tipo_Superficie')['Longitud_km'].sum()
+    longitud_por_estado = df.groupby('Estado_Actual')['Longitud_km'].sum()
+
+    print("\n--- Indicadores de Longitud ---")
+    print(f"Longitud total de todas las vías: {longitud_total:.2f} km")
+    print("\nLongitud total por Tipo_Superficie:")
+    print(longitud_por_superficie)
+    print("\nLongitud total por Estado_Actual:")
+    print(longitud_por_estado)
+
+
+
+df_catastro = cargar_catastro_csv()
+
+# Si el DataFrame cargado está vacío, puedes inicializarlo con datos de ejemplo
+if df_catastro.empty:
+    print("\nEl catastro cargado está vacío, inicializando con datos de ejemplo.")
+    df_catastro = crear_dataframe_catastro_inicial()
+    guardar_catastro_csv(df_catastro)
+
+print("\n--- DataFrame Actual ---")
+print(df_catastro)
+
+
+df_catastro = agregar_via(df_catastro, 9, 'Carrera 23', 78.50, 'Tierra', 'Malo')
+guardar_catastro_csv(df_catastro) # Guardar después de la operación
+
+
+df_catastro = agregar_via(df_catastro, 1, 'Carrera 24', 10.0, 'Asfalto', 'Malo')
+
+
+leer_vias(df_catastro, tipo_superficie='Grava')
+leer_vias(df_catastro, estado_actual='Bueno')
+
+
+df_catastro = actualizar_via(df_catastro, 1, 'Nombre_Via', 'Carrera 1')
+guardar_catastro_csv(df_catastro) 
+
+
+df_catastro = actualizar_via(df_catastro, 2, 'Tipo_Material', 'Concreto')
+
+
+df_catastro = eliminar_via(df_catastro, 4)
+guardar_catastro_csv(df_catastro)
+
+
+
+df_catastro = eliminar_via(df_catastro, 10)
+
+
+calcular_indicadores(df_catastro)
